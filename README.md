@@ -1,187 +1,187 @@
 # OpenAppCli
 
-[English](./README_EN.md)
+[中文文档](./README_CN.md)
 
-> **把任何 Android 应用变成 AI 可调用的命令行。**
+> **Turn any Android app into AI-callable CLI commands.**
 
-OpenAppCli 让 AI 代理能够控制**任何** Android 应用 —— 无需修改 App，无需 Root。
+OpenAppCli empowers AI agents to control **any** Android application through a simple command-line interface — no app modification, no root required.
 
-## 为什么需要 OpenAppCli？
+## Why OpenAppCli?
 
-**问题**：AI 代理可以浏览网页，但 90% 的移动应用功能被锁在原生 UI 背后，AI 无法触及。
+**The Problem**: AI agents can browse the web, but 90% of mobile app functionality is locked behind native UIs that AI cannot access.
 
-**解决方案**：OpenAppCli 弥合了这一鸿沟。它赋予 AI 代理「眼睛」和「双手」，像人类一样操作任何 Android 应用。
-
-```bash
-# AI 现在可以这样做：
-openapp run xiaoyuzhou/search --keyword=AI    # 搜索播客
-openapp run taobao/search --keyword=iPhone    # 搜索商品  
-openapp run weibo/trending                     # 获取热搜
-```
-
-## 核心特性
-
-### 任何应用，零修改
-- 开箱即用，支持**任何** Android 应用
-- 无需应用源码或修改
-- 无需 Root —— 只需开启 USB 调试
-
-### AI 优先设计
-- **结构化 JSON 输出**，AI 可靠解析
-- **确定性结果**，适合自动化流水线
-- **插件系统**，可复用的工作流
-
-### 探索 → 自动化 → 复用
-```
-AI 遇到新应用
-       ↓
-使用底层命令探索 (snapshot, click, type)
-       ↓
-发现操作流程
-       ↓
-保存为 .ad 插件，供未来复用
-```
-
-这是杀手级特性：**AI 学习一次，永久复用**。
-
-### 完整中文支持
-- 通过 ADBKeyboard 输入 Unicode 文本
-- 中文 UI 元素识别
-- 原生支持中文应用
-
-## 快速开始
+**The Solution**: OpenAppCli bridges this gap. It gives AI agents eyes and hands to operate any Android app, just like a human would.
 
 ```bash
-# 安装
+# AI can now do this:
+openapp run xiaoyuzhou/search --keyword=AI    # Search podcasts
+openapp run taobao/search --keyword=iPhone    # Search products  
+openapp run weibo/trending                     # Get trending topics
+```
+
+## Key Features
+
+### Any App, Zero Modification
+- Works with **any** Android app out of the box
+- No app source code or modification needed
+- No root required — just USB debugging
+
+### AI-First Design
+- **Structured JSON output** for reliable AI parsing
+- **Deterministic results** suitable for automation pipelines
+- **Plugin system** for reusable workflows
+
+### Explore → Automate → Reuse
+```
+AI encounters new app
+       ↓
+Explores with low-level commands (snapshot, click, type)
+       ↓
+Discovers the workflow
+       ↓
+Saves as .ad plugin for future reuse
+```
+
+This is the killer feature: **AI learns once, reuses forever**.
+
+### Full Chinese Support
+- Unicode text input via ADBKeyboard
+- Chinese UI element recognition
+- Works with Chinese apps natively
+
+## Quick Start
+
+```bash
+# Install
 git clone https://github.com/anthropics/openAppCli.git
 cd openAppCli && npm install && npm run build && npm link
 
-# 使用
-openapp list                                  # 列出可用插件
-openapp run xiaoyuzhou/search --keyword=AI    # 运行插件
+# Use
+openapp list                                  # List available plugins
+openapp run xiaoyuzhou/search --keyword=AI    # Run a plugin
 ```
 
-### 环境要求
+### Prerequisites
 - Node.js 18+
-- ADB 已添加到 PATH
-- Android 设备已开启 USB 调试
+- ADB in PATH
+- Android device with USB debugging enabled
 
-## 工作原理
+## How It Works
 
 ```
 ┌─────────────┐     CLI      ┌─────────────┐     ADB      ┌─────────────┐
-│  AI 代理    │ ──────────▶  │  openapp    │ ──────────▶  │  Android    │
-│  (Claude)   │ ◀──────────  │    CLI      │ ◀──────────  │    设备     │
+│  AI Agent   │ ──────────▶  │  openapp    │ ──────────▶  │  Android    │
+│  (Claude)   │ ◀──────────  │    CLI      │ ◀──────────  │   Device    │
 └─────────────┘    JSON      └─────────────┘   UI Dump    └─────────────┘
 ```
 
-1. AI 调用 `openapp snapshot` → 获取 UI 层级结构（JSON）
-2. AI 分析元素，决定操作
-3. AI 调用 `openapp click/type/scroll`
-4. 重复直到任务完成
-5. AI 将流程保存为 `.ad` 插件
+1. AI calls `openapp snapshot` → gets UI hierarchy as JSON
+2. AI analyzes elements, decides action
+3. AI calls `openapp click/type/scroll`
+4. Repeat until task complete
+5. AI saves workflow as `.ad` plugin
 
-## 命令
+## Commands
 
-### 插件命令（推荐）
+### Plugin Commands (Preferred)
 ```bash
-openapp list                              # 列出所有插件
-openapp run <plugin> [--var key=value]    # 运行插件
+openapp list                              # List all plugins
+openapp run <plugin> [--var key=value]    # Run plugin
 ```
 
-### 底层命令（用于探索）
+### Low-level Commands (For Exploration)
 ```bash
-openapp devices          # 列出已连接设备
-openapp open <package>   # 打开应用
-openapp snapshot         # 获取 UI 层级（JSON）
-openapp click <selector> # 点击元素
-openapp type <text>      # 输入文本
-openapp scroll <dir>     # 滚动 up/down/left/right
-openapp back/home/enter  # 导航
+openapp devices          # List connected devices
+openapp open <package>   # Open app
+openapp snapshot         # Get UI hierarchy (JSON)
+openapp click <selector> # Click element
+openapp type <text>      # Type text
+openapp scroll <dir>     # Scroll up/down/left/right
+openapp back/home/enter  # Navigation
 ```
 
-### 选择器
+### Selectors
 ```bash
-openapp click 'text=搜索'
+openapp click 'text=Search'
 openapp click 'resourceId=com.app:id/btn'
-openapp click 'contentDesc=菜单'
-openapp click '@e0'    # snapshot 中的 ref
+openapp click 'contentDesc=Menu'
+openapp click '@e0'    # ref from snapshot
 ```
 
-## 插件系统
+## Plugin System
 
-插件是可复用的自动化脚本：`plugins/<app>/<action>.ad`
+Plugins are reusable automation scripts: `plugins/<app>/<action>.ad`
 
 ```bash
-# @name 搜索播客
-# @description 在小宇宙中搜索
-# @app 小宇宙
+# @name Search Podcasts
+# @description Search in Xiaoyuzhou app
+# @app Xiaoyuzhou
 # @package app.podcast.cosmos
-# @params keyword: 搜索关键词
+# @params keyword: Search term
 
 context platform=android
 open app.podcast.cosmos
 wait 2000
-click contentDesc=搜索页
+click contentDesc=Search
 type {{keyword}}
 enter
 wait 2000
 snapshot
 ```
 
-## 实际应用场景
+## Real-World Examples
 
-### 播客搜索
+### Podcast Search
 ```bash
-openapp run xiaoyuzhou/search --keyword="人工智能"
-# 返回：匹配的播客列表，包含标题、描述、播放量
+openapp run xiaoyuzhou/search --keyword="artificial intelligence"
+# Returns: List of matching podcasts with titles, descriptions, play counts
 ```
 
-### 电商比价
+### E-commerce Price Check
 ```bash
 openapp run taobao/search --keyword="iPhone 15"
-# 返回：商品列表，包含价格、评分、销量
+# Returns: Product listings with prices, ratings, sales volume
 ```
 
-### 社交媒体监控
+### Social Media Monitoring
 ```bash
 openapp run weibo/trending
-# 返回：当前热搜话题及热度指数
+# Returns: Current trending topics with heat index
 ```
 
-## 限制
+## Limitations
 
-| 限制 | 原因 |
-|------|------|
-| 微信、银行类应用 | 安全保护，阻止 UI 检查 |
-| iOS | 暂不支持（计划中） |
-| 模拟器 | 部分可用，推荐真机 |
+| Limitation | Reason |
+|------------|--------|
+| WeChat, Banking apps | Security-protected, blocks UI inspection |
+| iOS | Not yet supported (planned) |
+| Emulators | Some may work, physical device recommended |
 
-## 面向 AI 开发者
+## For AI Developers
 
-OpenAppCli 专为 AI 代理设计。集成模式：
+OpenAppCli is designed as a tool for AI agents. Integration pattern:
 
 ```python
-# 伪代码
+# Pseudocode
 plugins = run("openapp list")
 if matching_plugin_exists(user_request, plugins):
     result = run(f"openapp run {plugin} --var {params}")
 else:
-    # 探索模式
+    # Exploration mode
     run("openapp open com.example.app")
     ui = run("openapp snapshot")
-    # AI 分析 UI，执行操作，创建插件
+    # AI analyzes UI, performs actions, creates plugin
 ```
 
-核心洞察：**每次新应用交互都会沉淀为可复用插件**，构建不断增长的 Android 应用自动化库。
+The key insight: **Every new app interaction becomes a reusable plugin**, building an ever-growing library of Android app automations.
 
-## 许可证
+## License
 
 Apache 2.0
 
-## 贡献
+## Contributing
 
-欢迎贡献！感兴趣的方向：
-- 新应用插件
-- iOS 支持
-- 改进元素识别
+Contributions welcome! Areas of interest:
+- New app plugins
+- iOS support
+- Improved element recognition
