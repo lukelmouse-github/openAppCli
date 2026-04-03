@@ -2,15 +2,18 @@
 
 [中文文档](./README_CN.md)
 
-> **Turn any Android app into AI-callable CLI commands.**
+> **AI explores Android apps, automatically wraps their capabilities into CLI, and accumulates reusable assets.**
 
-OpenAppCli empowers AI agents to control **any** Android application through a simple command-line interface — no app modification, no root required.
+OpenAppCli enables AI agents to autonomously discover, automate, and package any Android app's functionality into reusable command-line tools — no app modification, no root, no manual scripting.
 
 ## Why OpenAppCli?
 
-**The Problem**: AI agents can browse the web, but 90% of mobile app functionality is locked behind native UIs that AI cannot access.
+**The Problem**: Every Android app is a capability silo. To automate it, you need to manually write scripts, maintain them, and repeat for each app.
 
-**The Solution**: OpenAppCli bridges this gap. It gives AI agents eyes and hands to operate any Android app, just like a human would.
+**The Solution**: Let AI do the work. OpenAppCli gives AI agents the ability to:
+1. **Explore** any app's UI autonomously
+2. **Wrap** discovered workflows into CLI commands
+3. **Accumulate** these as reusable plugins that grow over time
 
 ```bash
 # AI can now do this:
@@ -31,18 +34,18 @@ openapp run weibo/trending                     # Get trending topics
 - **Deterministic results** suitable for automation pipelines
 - **Plugin system** for reusable workflows
 
-### Explore → Automate → Reuse
+### Explore → Wrap → Accumulate
 ```
 AI encounters new app
        ↓
-Explores with low-level commands (snapshot, click, type)
+Explores UI autonomously (snapshot, click, type)
        ↓
-Discovers the workflow
+Discovers and validates workflow
        ↓
-Saves as .ad plugin for future reuse
+Wraps as .ad plugin → Reusable CLI asset
 ```
 
-This is the killer feature: **AI learns once, reuses forever**.
+**The killer feature**: Every AI interaction with a new app becomes a permanent, reusable CLI tool. Your plugin library grows automatically.
 
 ### Full Chinese Support
 - Unicode text input via ADBKeyboard
@@ -173,7 +176,7 @@ else:
     # AI analyzes UI, performs actions, creates plugin
 ```
 
-The key insight: **Every new app interaction becomes a reusable plugin**, building an ever-growing library of Android app automations.
+**The key insight**: AI doesn't just use apps — it **wraps them into CLI tools**. Each interaction accumulates as a reusable asset, building an ever-growing library of Android app automations.
 
 ## License
 
