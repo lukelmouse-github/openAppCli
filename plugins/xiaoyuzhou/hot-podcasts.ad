@@ -1,0 +1,20 @@
+# @name 热门播客
+# @description 获取小宇宙近期热门播客列表
+# @app 小宇宙
+# @package app.podcast.cosmos
+
+context platform=android
+open app.podcast.cosmos
+
+wait 2000
+
+# 点击分类入口
+click text=分类
+
+wait 1500
+
+# 点击近期热门
+click text=近期热门
+
+wait 1500
+snapshot

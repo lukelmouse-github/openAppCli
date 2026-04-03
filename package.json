@@ -1,0 +1,18 @@
+{
+  "name": "openappcli",
+  "version": "0.1.0",
+  "description": "Turn Android apps into CLI tools for AI agents",
+  "type": "module",
+  "bin": {
+    "openapp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

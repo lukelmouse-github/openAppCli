@@ -1,0 +1,8 @@
+# @name 打开设置
+# @description 打开 Android 系统设置
+# @app 系统设置
+# @package com.android.settings
+
+context platform=android
+open com.android.settings --relaunch
+snapshot

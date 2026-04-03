@@ -1,0 +1,15 @@
+# @name 个人主页
+# @description 查看小宇宙个人主页信息
+# @app 小宇宙
+# @package app.podcast.cosmos
+
+context platform=android
+open app.podcast.cosmos
+
+wait 2000
+
+# 点击底部"个人"tab
+click text=个人
+
+wait 1000
+snapshot

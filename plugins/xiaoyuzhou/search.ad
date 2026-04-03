@@ -1,0 +1,23 @@
+# @name 搜索播客
+# @description 在小宇宙中搜索播客，返回节目和单集结果
+# @app 小宇宙
+# @package app.podcast.cosmos
+# @params keyword: 搜索关键词
+
+context platform=android
+open app.podcast.cosmos
+
+wait 2000
+
+# 点击搜索框
+click contentDesc=搜索页
+
+wait 1000
+
+# 输入搜索词并确认搜索
+type {{keyword}}
+wait 500
+enter
+
+wait 2000
+snapshot
