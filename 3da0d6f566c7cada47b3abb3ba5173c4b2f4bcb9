@@ -1,0 +1,25 @@
+README_CN.md
+  1c8fa6351a37af74 5,7,11,13-16,37,41,43,45,48,179
+README.md
+  1c8fa6351a37af74 5,7,11,13-16,37,41,43,45,48,179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "3da0d6f566c7cada47b3abb3ba5173c4b2f4bcb9",
+  "prompts": {
+    "1c8fa6351a37af74": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "720e2808-6854-4df0-99fe-558d8e2913f7",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "luke",
+      "messages": [],
+      "total_additions": 26,
+      "total_deletions": 20,
+      "accepted_lines": 26,
+      "overriden_lines": 0
+    }
+  }
+}
