@@ -1,0 +1,49 @@
+plugins/xiaoyuzhou/hot-podcasts.ad
+  1c8fa6351a37af74 1-20
+src/plugin/parser.ts
+  1c8fa6351a37af74 13,62,97-100
+LICENSE
+  1c8fa6351a37af74 1-190
+README_EN.md
+  1c8fa6351a37af74 3
+src/index.ts
+  1c8fa6351a37af74 109-115,212,219-228,235-253,257
+README.md
+  1c8fa6351a37af74 3-4,10,12,14-15,20-21,23,28,33,35,37,39,41,43-44,46,51,53-54,56-58,62-63,65,68,70-72,75-77,85,87,90,101,104,106,110,119,121,123-124,127,130-131,133,135,138-139,141-142,144-145,147-148,151,153,155,159,161,163-164,166-169,171-172,174-175,177,179-181,183
+src/device/interface.ts
+  1c8fa6351a37af74 50
+src/device/android.ts
+  1c8fa6351a37af74 57-60
+plugins/xiaoyuzhou/search.ad
+  1c8fa6351a37af74 1-23
+src/plugin/runner.ts
+  1c8fa6351a37af74 83-86
+.gitignore
+  1c8fa6351a37af74 1-23
+plugins/settings/open.ad
+  1c8fa6351a37af74 1-5,8
+.claude/skills/openappcli.md
+  1c8fa6351a37af74 1-117
+plugins/xiaoyuzhou/profile.ad
+  1c8fa6351a37af74 1-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "5fca26eaf114f1e916e995940453ef8195417c18",
+  "prompts": {
+    "1c8fa6351a37af74": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "720e2808-6854-4df0-99fe-558d8e2913f7",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "luke",
+      "messages": [],
+      "total_additions": 1511,
+      "total_deletions": 462,
+      "accepted_lines": 526,
+      "overriden_lines": 89
+    }
+  }
+}
