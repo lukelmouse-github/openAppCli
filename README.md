@@ -2,15 +2,15 @@
 
 [中文文档](./README_CN.md)
 
-> **AI explores Android apps, automatically wraps their capabilities into CLI, and accumulates reusable assets.**
+> **AI explores any app, automatically wraps its capabilities into CLI, and accumulates reusable assets.**
 
-**Works with ANY Android app** — including WeChat, banking apps, WebView, Flutter, and security-protected apps. When UI inspection is blocked, AI uses screenshot + tap coordinates as fallback. No app is off-limits.
+**Works with ANY app** — including WeChat, banking apps, WebView, Flutter, and security-protected apps. When UI inspection is blocked, AI uses screenshot + tap coordinates as fallback. No app is off-limits.
 
-OpenAppCli enables AI agents to autonomously discover, automate, and package any Android app's functionality into reusable command-line tools — no app modification, no root, no manual scripting.
+OpenAppCli enables AI agents to autonomously discover, automate, and package any app's functionality into reusable command-line tools — no app modification, no root, no manual scripting.
 
 ## Why OpenAppCli?
 
-**The Problem**: Every Android app is a capability silo. To automate it, you need to manually write scripts, maintain them, and repeat for each app.
+**The Problem**: Every app is a capability silo. To automate it, you need to manually write scripts, maintain them, and repeat for each app.
 
 **The Solution**: Let AI do the work. OpenAppCli gives AI agents the ability to:
 1. **Explore** any app's UI autonomously
@@ -27,9 +27,9 @@ openapp run weibo/trending                     # Get trending topics
 ## Key Features
 
 ### Any App, Zero Modification
-- Works with **any** Android app out of the box
+- Works with **any** app out of the box
 - No app source code or modification needed
-- No root required — just USB debugging
+- No special privileges or jailbreak required
 
 ### AI-First Design
 - **Structured JSON output** for reliable AI parsing
@@ -68,15 +68,14 @@ openapp run xiaoyuzhou/search --keyword=AI    # Run a plugin
 
 ### Prerequisites
 - Node.js 18+
-- ADB in PATH
-- Android device with USB debugging enabled
+- Device with USB debugging enabled (Android currently supported, iOS planned)
 
 ## How It Works
 
 ```
-┌─────────────┐     CLI      ┌─────────────┐     ADB      ┌─────────────┐
-│  AI Agent   │ ──────────▶  │  openapp    │ ──────────▶  │  Android    │
-│  (Claude)   │ ◀──────────  │    CLI      │ ◀──────────  │   Device    │
+┌─────────────┐     CLI      ┌─────────────┐    Device    ┌─────────────┐
+│  AI Agent   │ ──────────▶  │  openapp    │ ──────────▶  │     Any     │
+│  (Claude)   │ ◀──────────  │    CLI      │ ◀──────────  │     App     │
 └─────────────┘    JSON      └─────────────┘   UI Dump    └─────────────┘
 ```
 
@@ -222,22 +221,21 @@ openapp screenshot /tmp/screen.png
 
 ## Universal Compatibility
 
-OpenAppCli works with **ALL** Android apps through a two-layer approach:
+OpenAppCli works with **ANY APP** through a two-layer approach:
 
-| App Type | Method | Example |
-|----------|--------|---------|
-| Standard apps | UI inspection (semantic selectors) | Most apps |
-| Security-protected apps | Screenshot + tap coordinates | WeChat, banking apps |
-| WebView / Flutter | Screenshot + tap coordinates | Hybrid apps |
+| App Type | Method | Examples |
+|----------|--------|----------|
+| Apps with accessible UI | UI inspection (semantic selectors) | Most apps |
+| Security-protected / UI-blocked apps | Screenshot + tap coordinates | WeChat, banking apps, WebView, Flutter |
 
 **No app is off-limits.** When an app blocks UI inspection, AI automatically falls back to visual analysis with screenshots and normalized coordinates.
 
-### Current Limitations
+### Platform Support
 
-| Limitation | Status |
-|------------|--------|
-| iOS | Not yet supported (planned) |
-| Emulators | Some may work, physical device recommended |
+| Platform | Status |
+|----------|--------|
+| Android | Fully supported |
+| iOS | Planned for future release |
 
 ## For AI Developers
 
@@ -255,7 +253,7 @@ else:
     # AI analyzes UI, performs actions, creates plugin
 ```
 
-**The key insight**: AI doesn't just use apps — it **wraps them into CLI tools**. Each interaction accumulates as a reusable asset, building an ever-growing library of Android app automations.
+**The key insight**: AI doesn't just use apps — it **wraps them into CLI tools**. Each interaction accumulates as a reusable asset, building an ever-growing library of app automations.
 
 ## License
 
@@ -264,6 +262,6 @@ Apache 2.0
 ## Contributing
 
 Contributions welcome! Areas of interest:
-- New app plugins
-- iOS support
-- Improved element recognition
+- New app plugins  
+- Platform support (iOS, web, desktop)
+- Improved UI recognition
