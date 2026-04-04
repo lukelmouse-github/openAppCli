@@ -21,3 +21,7 @@ npm-debug.log*
 # Environment
 .env
 .env.local
+
+# Personal plugins (device-specific, should not be shared)
+# Convention: Personal plugins should be in plugins/.personal/ directory
+plugins/.personal/

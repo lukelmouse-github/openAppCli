@@ -56,7 +56,7 @@ AI 遇到新应用
 
 ```bash
 # 安装
-git clone https://github.com/anthropics/openAppCli.git
+git clone https://github.com/lukelmouse-github/openAppCli.git
 cd openAppCli && npm install && npm run build && npm link
 
 # 使用
@@ -126,14 +126,14 @@ openapp click '@e0'    # snapshot 中的 ref
 
 ## 插件系统
 
-插件是可复用的自动化脚本：`plugins/<app>/<action>.ad`
+插件是可复用的自动化脚本，存放在 `plugins/` 目录。
 
 ### 插件类型
 
-| 类型 | 说明 | 适用场景 |
-|------|------|----------|
-| **Universal（通用）** | 仅使用语义选择器 | 跨设备、可分享 |
-| **Personal（私人）** | 通过 `@device` 绑定特定设备 | WebView、Flutter、设备专用 |
+| 类型 | 位置 | 说明 |
+|------|------|------|
+| **Universal（通用）** | `plugins/<app>/<action>.ad` | 仅使用语义选择器，跨设备、可分享 |
+| **Personal（私人）** | `plugins/.personal/<app>/<action>.ad` | 使用 tap 坐标，设备专用，已 git-ignore |
 
 ### Universal 插件（推荐）
 
@@ -176,7 +176,9 @@ tap 900 120    # 提交按钮
 snapshot
 ```
 
-**注意**：Personal 插件在其他设备上运行时会返回明确错误：
+**注意**：
+- Personal 插件存放在 `plugins/.personal/`，已被 git-ignore
+- 在其他设备上运行时会返回明确错误：
 ```json
 {"error": "Device mismatch", "required": "5cbab8d9", "connected": "other-device"}
 ```

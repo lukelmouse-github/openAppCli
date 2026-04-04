@@ -56,7 +56,7 @@ Wraps as .ad plugin → Reusable CLI asset
 
 ```bash
 # Install
-git clone https://github.com/anthropics/openAppCli.git
+git clone https://github.com/lukelmouse-github/openAppCli.git
 cd openAppCli && npm install && npm run build && npm link
 
 # Use
@@ -126,14 +126,14 @@ openapp click '@e0'    # ref from snapshot
 
 ## Plugin System
 
-Plugins are reusable automation scripts: `plugins/<app>/<action>.ad`
+Plugins are reusable automation scripts stored in `plugins/` directory.
 
 ### Plugin Types
 
-| Type | Description | Use Case |
-|------|-------------|----------|
-| **Universal** | Uses semantic selectors only | Cross-device, shareable |
-| **Personal** | Bound to specific device via `@device` | WebView, Flutter, device-specific |
+| Type | Location | Description |
+|------|----------|-------------|
+| **Universal** | `plugins/<app>/<action>.ad` | Uses semantic selectors, cross-device, shareable |
+| **Personal** | `plugins/.personal/<app>/<action>.ad` | Uses tap coordinates, device-specific, git-ignored |
 
 ### Universal Plugin (Recommended)
 
@@ -176,7 +176,9 @@ tap 900 120    # Submit button
 snapshot
 ```
 
-**Note**: Personal plugins fail with a clear error if run on a different device:
+**Note**: 
+- Personal plugins are stored in `plugins/.personal/` which is git-ignored
+- They fail with a clear error if run on a different device:
 ```json
 {"error": "Device mismatch", "required": "5cbab8d9", "connected": "other-device"}
 ```
