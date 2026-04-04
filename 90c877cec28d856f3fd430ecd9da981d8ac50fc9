@@ -1,0 +1,35 @@
+src/plugin/runner.ts
+  1c8fa6351a37af74 6,8,28-38,82-85,158,160,167-171,173-174,178
+src/plugin/parser.ts
+  1c8fa6351a37af74 10,20-28,31-32,39,44-45,47-62,76,148-160,175
+src/providers/adb.ts
+  1c8fa6351a37af74 47-59,82-105
+src/device/android.ts
+  1c8fa6351a37af74 5-9,16-18,22-45,50-51,57-88,91-107,109-114,116-184,195-204,224-230,234-237,240,279,301-303,341-348
+src/index.ts
+  1c8fa6351a37af74 8,15-16,50,70-92,143-147,182,184-185,241,249,255,261,266,270-277,289,309,319
+src/utils/selector.ts
+  1c8fa6351a37af74 1-29
+src/device/interface.ts
+  1c8fa6351a37af74 24-30,33-36,47-51,56-58,60-61,65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "90c877cec28d856f3fd430ecd9da981d8ac50fc9",
+  "prompts": {
+    "1c8fa6351a37af74": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "720e2808-6854-4df0-99fe-558d8e2913f7",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "luke",
+      "messages": [],
+      "total_additions": 423,
+      "total_deletions": 104,
+      "accepted_lines": 408,
+      "overriden_lines": 0
+    }
+  }
+}
