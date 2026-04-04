@@ -1,0 +1,27 @@
+.gitignore
+  1c8fa6351a37af74 24-27
+README_CN.md
+  1c8fa6351a37af74 59,129,133-136,179-181
+README.md
+  1c8fa6351a37af74 59,129,133-136,179-181
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "357b48391e9bef690ebda8ff40cffbf52bf4c35e",
+  "prompts": {
+    "1c8fa6351a37af74": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "720e2808-6854-4df0-99fe-558d8e2913f7",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "luke",
+      "messages": [],
+      "total_additions": 43,
+      "total_deletions": 16,
+      "accepted_lines": 22,
+      "overriden_lines": 0
+    }
+  }
+}
