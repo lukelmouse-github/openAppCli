@@ -97,11 +97,24 @@ openapp run <plugin> [--var key=value]    # Run plugin
 openapp devices          # List connected devices
 openapp open <package>   # Open app
 openapp snapshot         # Get UI hierarchy (JSON)
-openapp click <selector> # Click element
+openapp screenshot [path] # Capture screen image
+openapp click <selector> # Click element by selector
+openapp tap <x> <y>      # Tap at normalized coordinates (0-1000)
 openapp type <text>      # Type text
 openapp scroll <dir>     # Scroll up/down/left/right
 openapp back/home/enter  # Navigation
 ```
+
+### Normalized Coordinates
+
+All coordinates use a **0-1000 normalized range**, making scripts device-independent:
+
+```bash
+openapp tap 500 500      # Center of screen (any device)
+openapp tap 950 50       # Top-right corner
+```
+
+The system automatically converts to physical pixels based on screen resolution.
 
 ### Selectors
 ```bash
@@ -114,6 +127,15 @@ openapp click '@e0'    # ref from snapshot
 ## Plugin System
 
 Plugins are reusable automation scripts: `plugins/<app>/<action>.ad`
+
+### Plugin Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| **Universal** | Uses semantic selectors only | Cross-device, shareable |
+| **Personal** | Bound to specific device via `@device` | WebView, Flutter, device-specific |
+
+### Universal Plugin (Recommended)
 
 ```bash
 # @name Search Podcasts
@@ -130,6 +152,33 @@ type {{keyword}}
 enter
 wait 2000
 snapshot
+```
+
+### Personal Plugin (Device-Specific)
+
+For apps with WebView or non-standard UI where semantic selectors don't work:
+
+```bash
+# @name Search (Tap Version)
+# @description Search using coordinates
+# @app SomeApp
+# @package com.example.app
+# @device 5cbab8d9
+# @params keyword
+
+context platform=android
+open com.example.app
+wait 2000
+tap 500 120    # Search button position
+wait 500
+type {{keyword}}
+tap 900 120    # Submit button
+snapshot
+```
+
+**Note**: Personal plugins fail with a clear error if run on a different device:
+```json
+{"error": "Device mismatch", "required": "5cbab8d9", "connected": "other-device"}
 ```
 
 ## Real-World Examples
@@ -150,6 +199,21 @@ openapp run taobao/search --keyword="iPhone 15"
 ```bash
 openapp run weibo/trending
 # Returns: Current trending topics with heat index
+```
+
+## Features
+
+### Auto Popup Dismissal
+OpenAppCli automatically detects and dismisses common popups (ads, permission dialogs, tips) using semantic rules before taking snapshots.
+
+### Change Detection
+Each snapshot includes a `changed` flag indicating whether the UI changed since the last snapshot — useful for detecting if an action had effect.
+
+### Screenshot Support
+When semantic selectors fail (WebView, Flutter, custom UI), use screenshots for AI vision analysis:
+```bash
+openapp screenshot /tmp/screen.png
+# AI can analyze the image and use tap coordinates
 ```
 
 ## Limitations

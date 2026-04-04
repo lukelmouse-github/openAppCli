@@ -97,11 +97,24 @@ openapp run <plugin> [--var key=value]    # 运行插件
 openapp devices          # 列出已连接设备
 openapp open <package>   # 打开应用
 openapp snapshot         # 获取 UI 层级（JSON）
-openapp click <selector> # 点击元素
+openapp screenshot [path] # 截取屏幕图片
+openapp click <selector> # 通过选择器点击元素
+openapp tap <x> <y>      # 通过归一化坐标点击（0-1000）
 openapp type <text>      # 输入文本
 openapp scroll <dir>     # 滚动 up/down/left/right
 openapp back/home/enter  # 导航
 ```
+
+### 归一化坐标
+
+所有坐标使用 **0-1000 归一化范围**，使脚本设备无关：
+
+```bash
+openapp tap 500 500      # 屏幕中心（任何设备）
+openapp tap 950 50       # 右上角
+```
+
+系统会根据屏幕分辨率自动转换为物理像素。
 
 ### 选择器
 ```bash
@@ -114,6 +127,15 @@ openapp click '@e0'    # snapshot 中的 ref
 ## 插件系统
 
 插件是可复用的自动化脚本：`plugins/<app>/<action>.ad`
+
+### 插件类型
+
+| 类型 | 说明 | 适用场景 |
+|------|------|----------|
+| **Universal（通用）** | 仅使用语义选择器 | 跨设备、可分享 |
+| **Personal（私人）** | 通过 `@device` 绑定特定设备 | WebView、Flutter、设备专用 |
+
+### Universal 插件（推荐）
 
 ```bash
 # @name 搜索播客
@@ -130,6 +152,33 @@ type {{keyword}}
 enter
 wait 2000
 snapshot
+```
+
+### Personal 插件（设备专用）
+
+适用于 WebView 或非标准 UI（语义选择器无法工作时）：
+
+```bash
+# @name 搜索（坐标版）
+# @description 使用坐标搜索
+# @app 某应用
+# @package com.example.app
+# @device 5cbab8d9
+# @params keyword
+
+context platform=android
+open com.example.app
+wait 2000
+tap 500 120    # 搜索按钮位置
+wait 500
+type {{keyword}}
+tap 900 120    # 提交按钮
+snapshot
+```
+
+**注意**：Personal 插件在其他设备上运行时会返回明确错误：
+```json
+{"error": "Device mismatch", "required": "5cbab8d9", "connected": "other-device"}
 ```
 
 ## 实际应用场景
@@ -150,6 +199,21 @@ openapp run taobao/search --keyword="iPhone 15"
 ```bash
 openapp run weibo/trending
 # 返回：当前热搜话题及热度指数
+```
+
+## 特性
+
+### 自动弹窗清理
+OpenAppCli 在获取快照前会自动检测并关闭常见弹窗（广告、权限弹窗、引导提示），使用语义规则识别。
+
+### 变化检测
+每次快照包含 `changed` 标志，指示 UI 是否自上次快照后发生变化 —— 用于检测操作是否生效。
+
+### 截图支持
+当语义选择器失效时（WebView、Flutter、自定义 UI），使用截图供 AI 视觉分析：
+```bash
+openapp screenshot /tmp/screen.png
+# AI 可以分析图片并使用 tap 坐标
 ```
 
 ## 限制
