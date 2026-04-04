@@ -4,6 +4,8 @@
 
 > **AI explores Android apps, automatically wraps their capabilities into CLI, and accumulates reusable assets.**
 
+**Works with ANY Android app** — including WeChat, banking apps, WebView, Flutter, and security-protected apps. When UI inspection is blocked, AI uses screenshot + tap coordinates as fallback. No app is off-limits.
+
 OpenAppCli enables AI agents to autonomously discover, automate, and package any Android app's functionality into reusable command-line tools — no app modification, no root, no manual scripting.
 
 ## Why OpenAppCli?
@@ -218,11 +220,22 @@ openapp screenshot /tmp/screen.png
 # AI can analyze the image and use tap coordinates
 ```
 
-## Limitations
+## Universal Compatibility
 
-| Limitation | Reason |
+OpenAppCli works with **ALL** Android apps through a two-layer approach:
+
+| App Type | Method | Example |
+|----------|--------|---------|
+| Standard apps | UI inspection (semantic selectors) | Most apps |
+| Security-protected apps | Screenshot + tap coordinates | WeChat, banking apps |
+| WebView / Flutter | Screenshot + tap coordinates | Hybrid apps |
+
+**No app is off-limits.** When an app blocks UI inspection, AI automatically falls back to visual analysis with screenshots and normalized coordinates.
+
+### Current Limitations
+
+| Limitation | Status |
 |------------|--------|
-| WeChat, Banking apps | Security-protected, blocks UI inspection |
 | iOS | Not yet supported (planned) |
 | Emulators | Some may work, physical device recommended |
 
