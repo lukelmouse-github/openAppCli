@@ -5,13 +5,15 @@
  */
 
 import * as fs from 'fs';
-import * as path from 'path';
+import * as nodePath from 'path';
 import * as readline from 'readline';
 import { adbDevices } from './providers/adb.js';
 import { AndroidDevice } from './device/android.js';
 import { parseAdFile } from './plugin/parser.js';
 import { runAdScript } from './plugin/runner.js';
 import { extract, type ExtractMode } from './extract/index.js';
+import { parseSelector } from './utils/selector.js';
+import type { SnapshotNode } from './device/interface.js';
 
 function waitForEnter(): Promise<void> {
   const rl = readline.createInterface({
@@ -45,7 +47,7 @@ async function main() {
     console.log(JSON.stringify({
       error: 'No command provided',
       usage: 'openapp <command> [options]',
-      commands: ['devices', 'snapshot', 'click', 'type', 'back', 'home', 'open']
+      commands: ['devices', 'snapshot', 'screenshot', 'click', 'tap', 'type', 'back', 'home', 'enter', 'scroll', 'open', 'run', 'list', 'extract']
     }));
     process.exit(1);
   }
@@ -62,6 +64,29 @@ async function main() {
         const device = await getDevice();
         const result = await device.snapshot();
         console.log(JSON.stringify(result, null, 2));
+        break;
+      }
+
+      case 'screenshot': {
+        const device = await getDevice();
+        const outputPath = args[1]; // optional
+        const screenshotPath = await device.screenshot(outputPath);
+        console.log(JSON.stringify({ status: 'ok', path: screenshotPath }));
+        break;
+      }
+
+      case 'tap': {
+        const device = await getDevice();
+        const x = parseInt(args[1], 10);
+        const y = parseInt(args[2], 10);
+        if (isNaN(x) || isNaN(y)) {
+          throw new Error('Usage: openapp tap <x> <y> (normalized 0-1000)');
+        }
+        if (x < 0 || x > 1000 || y < 0 || y > 1000) {
+          throw new Error('Coordinates must be in range 0-1000');
+        }
+        await device.tap(x, y);
+        console.log(JSON.stringify({ status: 'ok', tap: { x, y } }));
         break;
       }
 
@@ -115,8 +140,11 @@ async function main() {
 
       case 'scroll': {
         const device = await getDevice();
-        const direction = (args[1] || 'down') as 'up' | 'down' | 'left' | 'right';
-        await device.scroll(direction);
+        const direction = args[1] || 'down';
+        if (!['up', 'down', 'left', 'right'].includes(direction)) {
+          throw new Error('Usage: openapp scroll <up|down|left|right>');
+        }
+        await device.scroll(direction as 'up' | 'down' | 'left' | 'right');
         console.log(JSON.stringify({ status: 'ok', action: 'scroll', direction }));
         break;
       }
@@ -151,10 +179,10 @@ async function main() {
 
         // Resolve script path
         let fullPath = scriptPath;
-        if (!path.isAbsolute(scriptPath) && !fs.existsSync(scriptPath)) {
+        if (!nodePath.isAbsolute(scriptPath) && !fs.existsSync(scriptPath)) {
           // Try plugins directory
-          const pluginsDir = path.join(process.cwd(), 'plugins');
-          fullPath = path.join(pluginsDir, scriptPath);
+          const pluginsDir = nodePath.join(process.cwd(), 'plugins');
+          fullPath = nodePath.join(pluginsDir, scriptPath);
           if (!fullPath.endsWith('.ad')) {
             fullPath += '.ad';
           }
@@ -210,7 +238,7 @@ async function main() {
 
       case 'list': {
         // List available plugins with metadata
-        const pluginsDir = path.join(process.cwd(), 'plugins');
+        const pluginsDir = nodePath.join(process.cwd(), 'plugins');
         if (!fs.existsSync(pluginsDir)) {
           console.log(JSON.stringify({ plugins: [] }));
           break;
@@ -218,26 +246,35 @@ async function main() {
 
         interface PluginInfo {
           path: string;
+          type: 'universal' | 'personal';
           name?: string;
           description?: string;
           app?: string;
           package?: string;
           params?: string;
+          device?: string;
         }
 
         const plugins: PluginInfo[] = [];
         const apps = fs.readdirSync(pluginsDir);
         for (const app of apps) {
-          const appDir = path.join(pluginsDir, app);
+          const appDir = nodePath.join(pluginsDir, app);
           if (fs.statSync(appDir).isDirectory()) {
             const scripts = fs.readdirSync(appDir).filter(f => f.endsWith('.ad'));
             for (const script of scripts) {
               const pluginPath = `${app}/${script.replace('.ad', '')}`;
-              const fullPath = path.join(appDir, script);
+              const fullPath = nodePath.join(appDir, script);
               const content = fs.readFileSync(fullPath, 'utf-8');
 
               // Parse metadata from comments
-              const info: PluginInfo = { path: pluginPath };
+              const deviceMatch = content.match(/^#\s*@device\s+(.+)$/m);
+              const device = deviceMatch?.[1]?.trim();
+
+              const info: PluginInfo = {
+                path: pluginPath,
+                type: device ? 'personal' : 'universal',
+              };
+
               const nameMatch = content.match(/^#\s*@name\s+(.+)$/m);
               const descMatch = content.match(/^#\s*@description\s+(.+)$/m);
               const appMatch = content.match(/^#\s*@app\s+(.+)$/m);
@@ -249,6 +286,7 @@ async function main() {
               if (appMatch) info.app = appMatch[1].trim();
               if (pkgMatch) info.package = pkgMatch[1].trim();
               if (paramsMatch) info.params = paramsMatch[1].trim();
+              if (device) info.device = device;
 
               plugins.push(info);
             }
@@ -268,8 +306,7 @@ async function main() {
         const scrollCount = scrollIndex >= 0 ? parseInt(args[scrollIndex + 1], 10) : 0;
 
         const device = await getDevice();
-        const allNodes: typeof device extends { snapshot(): Promise<infer R> } ?
-          R extends { nodes: infer N } ? N : never : never = [];
+        const allNodes: SnapshotNode[] = [];
 
         // Collect nodes with optional scrolling
         const seenRefs = new Set<string>();
@@ -279,7 +316,7 @@ async function main() {
             const key = `${node.text || ''}:${node.rect?.x}:${node.rect?.y}`;
             if (!seenRefs.has(key)) {
               seenRefs.add(key);
-              (allNodes as typeof snapshot.nodes).push(node);
+              allNodes.push(node);
             }
           }
           if (i < scrollCount) {
@@ -288,7 +325,7 @@ async function main() {
           }
         }
 
-        const result = extract(allNodes as any, mode, limit);
+        const result = extract(allNodes, mode, limit);
         console.log(JSON.stringify(result, null, 2));
         break;
       }
@@ -301,24 +338,6 @@ async function main() {
     console.log(JSON.stringify({ error: String(err) }));
     process.exit(1);
   }
-}
-
-function parseSelector(input: string): { resourceId: string } | { text: string } | { contentDesc: string } | { ref: string } {
-  // resourceId="xxx" or text="xxx" or contentDesc="xxx" or @e0
-  if (input.startsWith('resourceId=')) {
-    return { resourceId: input.slice(11).replace(/"/g, '') };
-  }
-  if (input.startsWith('text=')) {
-    return { text: input.slice(5).replace(/"/g, '') };
-  }
-  if (input.startsWith('contentDesc=')) {
-    return { contentDesc: input.slice(12).replace(/"/g, '') };
-  }
-  if (input.startsWith('@')) {
-    return { ref: input };
-  }
-  // Default: treat as text
-  return { text: input };
 }
 
 main();

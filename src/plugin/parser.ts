@@ -7,6 +7,7 @@ export type AdCommand =
   | { type: 'open'; package: string; relaunch?: boolean }
   | { type: 'snapshot' }
   | { type: 'click'; selector: string }
+  | { type: 'tap'; x: number; y: number }  // Normalized coordinates (0-1000)
   | { type: 'type'; text: string }
   | { type: 'back' }
   | { type: 'home' }
@@ -16,21 +17,49 @@ export type AdCommand =
   | { type: 'pause'; message?: string }
   | { type: 'extract'; mode: string; limit?: number; scroll?: number };
 
+export interface AdMetadata {
+  name?: string;
+  description?: string;
+  app?: string;
+  package?: string;
+  params?: string;
+  device?: string;  // Device binding for Personal plugins
+}
+
 export interface AdScript {
   commands: AdCommand[];
-  variables: string[]; // e.g., ['keyword']
+  variables: string[];
+  metadata: AdMetadata;
 }
 
 export function parseAdFile(content: string): AdScript {
   const lines = content.split('\n');
   const commands: AdCommand[] = [];
   const variables = new Set<string>();
+  const metadata: AdMetadata = {};
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
 
-    // Skip empty lines and comments
-    if (!line || line.startsWith('#')) continue;
+    // Skip empty lines
+    if (!line) continue;
+
+    // Parse metadata from comments (# @name xxx)
+    if (line.startsWith('#')) {
+      const metaMatch = line.match(/^#\s*@(\w+)\s+(.+)$/);
+      if (metaMatch) {
+        const [, key, value] = metaMatch;
+        switch (key) {
+          case 'name': metadata.name = value.trim(); break;
+          case 'description': metadata.description = value.trim(); break;
+          case 'app': metadata.app = value.trim(); break;
+          case 'package': metadata.package = value.trim(); break;
+          case 'params': metadata.params = value.trim(); break;
+          case 'device': metadata.device = value.trim(); break;
+        }
+      }
+      continue;
+    }
 
     // Extract variables like {{keyword}}
     const varMatches = line.matchAll(/\{\{(\w+)\}\}/g);
@@ -44,7 +73,7 @@ export function parseAdFile(content: string): AdScript {
     }
   }
 
-  return { commands, variables: Array.from(variables) };
+  return { commands, variables: Array.from(variables), metadata };
 }
 
 function parseLine(line: string): AdCommand | null {
@@ -116,6 +145,19 @@ function parseLine(line: string): AdCommand | null {
       return { type: 'scroll', direction };
     }
 
+    case 'tap': {
+      // tap 500 700 (normalized coordinates 0-1000)
+      const x = parseInt(parts[1], 10);
+      const y = parseInt(parts[2], 10);
+      if (isNaN(x) || isNaN(y)) {
+        throw new Error(`Invalid tap coordinates: ${line}`);
+      }
+      if (x < 0 || x > 1000 || y < 0 || y > 1000) {
+        throw new Error(`Tap coordinates must be in range 0-1000: ${line}`);
+      }
+      return { type: 'tap', x, y };
+    }
+
     case 'extract': {
       // extract products --limit 20 --scroll 3
       const mode = parts[1] || 'products';
@@ -130,7 +172,6 @@ function parseLine(line: string): AdCommand | null {
     }
 
     default:
-      console.error(`Unknown command: ${cmd}`);
-      return null;
+      throw new Error(`Unknown command: ${cmd}`);
   }
 }

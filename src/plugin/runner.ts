@@ -3,8 +3,9 @@
  */
 
 import type { AdScript, AdCommand } from './parser.js';
-import type { IDevice, Selector, SnapshotNode } from '../device/interface.js';
+import type { IDevice, SnapshotNode } from '../device/interface.js';
 import { extract, type ExtractMode } from '../extract/index.js';
+import { parseSelector } from '../utils/selector.js';
 
 const DEFAULT_WAIT_MS = 500;
 const MAX_RETRY_WAIT_MS = 3000;
@@ -23,6 +24,17 @@ export async function runAdScript(
   options: RunnerOptions = {}
 ): Promise<void> {
   const { variables = {}, verbose = false, onPause, onExtract } = options;
+
+  // Device validation for Personal plugins
+  if (script.metadata?.device && script.metadata.device !== device.id) {
+    throw new Error(JSON.stringify({
+      error: 'Device mismatch',
+      type: 'personal',
+      required: script.metadata.device,
+      connected: device.id,
+      hint: 'This plugin is bound to a specific device'
+    }));
+  }
 
   for (const command of script.commands) {
     if (verbose) {
@@ -65,6 +77,10 @@ async function executeCommand(
 
     case 'click':
       await executeClickWithRetry(device, command.selector, variables);
+      break;
+
+    case 'tap':
+      await device.tap(command.x, command.y);
       break;
 
     case 'type':
@@ -139,42 +155,27 @@ async function executeClickWithRetry(
 ): Promise<void> {
   const selector = parseSelector(replaceVariables(selectorStr, variables));
   const startTime = Date.now();
+  let lastError: Error | null = null;
 
-  while (true) {
+  while (Date.now() - startTime < MAX_RETRY_WAIT_MS) {
     try {
       // Always refresh snapshot before click
       await device.snapshot();
       await device.click(selector);
       return;
     } catch (err) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed >= MAX_RETRY_WAIT_MS) {
-        throw new Error(`Click failed after ${MAX_RETRY_WAIT_MS}ms: ${selectorStr}`);
+      lastError = err instanceof Error ? err : new Error(String(err));
+      // Only retry if it's a "not found" error, not a device error
+      if (lastError.message.includes('Element not found')) {
+        await sleep(RETRY_INTERVAL_MS);
+        continue;
       }
-      // Wait and retry
-      await sleep(RETRY_INTERVAL_MS);
+      // For other errors (device disconnected, etc.), fail immediately
+      throw lastError;
     }
   }
-}
 
-function parseSelector(input: string): Selector {
-  if (input.startsWith('resourceId=')) {
-    return { resourceId: input.slice(11).replace(/"/g, '') };
-  }
-  if (input.startsWith('text=')) {
-    return { text: input.slice(5).replace(/"/g, '') };
-  }
-  if (input.startsWith('contentDesc=')) {
-    return { contentDesc: input.slice(12).replace(/"/g, '') };
-  }
-  if (input.startsWith('hint=')) {
-    return { hint: input.slice(5).replace(/"/g, '') };
-  }
-  if (input.startsWith('@')) {
-    return { ref: input };
-  }
-  // Default: treat as text
-  return { text: input };
+  throw new Error(`Click failed after ${MAX_RETRY_WAIT_MS}ms: ${selectorStr}. Last error: ${lastError?.message}`);
 }
 
 function replaceVariables(text: string, variables: Record<string, string>): string {

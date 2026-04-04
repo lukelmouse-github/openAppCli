@@ -2,31 +2,186 @@
  * Android Device - IDevice implementation using ADB
  */
 
-import type { IDevice, Selector, SnapshotResult, SnapshotNode, Rect } from './interface.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as crypto from 'crypto';
+import type { IDevice, Selector, SnapshotResult, SnapshotNode, Rect, ScreenInfo, SnapshotOptions } from './interface.js';
 import {
   adbDumpUi,
   adbTap,
   adbType,
   adbKeyEvent,
-  adbStartActivity,
   adbForceStop,
+  adbScreenSize,
+  adbScreenshot,
+  adbSwipe,
   KEYCODE,
 } from '../providers/adb.js';
+
+// Normalized coordinate range
+const NORM_SIZE = 1000;
+
+// Dismiss rules for auto popup cleanup
+const DISMISS_RULES = {
+  text: [
+    '跳过', 'Skip', '跳过广告',
+    '关闭', 'Close', '×', 'X', '✕',
+    '取消', 'Cancel',
+    '稍后', '以后再说', 'Later', 'Not now',
+    '我知道了', '知道了', 'Got it', 'OK', 'I know',
+    '不再提示', "Don't show again",
+    '拒绝', 'Deny', '不允许',
+    '暂不', '跳过引导', '立即体验',
+  ],
+  resourceIdPatterns: [
+    /close/i, /dismiss/i, /skip/i, /cancel/i,
+    /negative/i, /btn_close/i, /iv_close/i,
+  ],
+  contentDescPatterns: [
+    /关闭/i, /close/i, /dismiss/i, /skip/i,
+  ],
+};
 
 export class AndroidDevice implements IDevice {
   id: string;
   platform: 'android' = 'android';
   private lastSnapshot: SnapshotNode[] = [];
+  private lastSnapshotHash: string = '';
+  private screenSize: { width: number; height: number } | null = null;
 
   constructor(deviceId: string) {
     this.id = deviceId;
   }
 
-  async snapshot(): Promise<SnapshotResult> {
+  async getScreenSize(): Promise<{ width: number; height: number }> {
+    if (!this.screenSize) {
+      this.screenSize = await adbScreenSize(this.id);
+    }
+    return this.screenSize;
+  }
+
+  private async normalizedToPhysical(normX: number, normY: number): Promise<{ x: number; y: number }> {
+    const screen = await this.getScreenSize();
+    return {
+      x: Math.floor(normX / NORM_SIZE * screen.width),
+      y: Math.floor(normY / NORM_SIZE * screen.height),
+    };
+  }
+
+  private async physicalToNormalized(physX: number, physY: number): Promise<{ x: number; y: number }> {
+    const screen = await this.getScreenSize();
+    return {
+      x: Math.floor(physX / screen.width * NORM_SIZE),
+      y: Math.floor(physY / screen.height * NORM_SIZE),
+    };
+  }
+
+  private computeNodesHash(nodes: SnapshotNode[]): string {
+    const content = nodes.map(n => `${n.text}|${n.resourceId}|${n.contentDesc}|${n.ref}`).join(';');
+    return crypto.createHash('md5').update(content).digest('hex').slice(0, 8);
+  }
+
+  async screenshot(outputPath?: string): Promise<string> {
+    const finalPath = outputPath || path.join(os.tmpdir(), `openapp_${Date.now()}.png`);
+    await adbScreenshot(this.id, finalPath);
+    return finalPath;
+  }
+
+  async snapshot(options: SnapshotOptions = {}): Promise<SnapshotResult> {
+    const { autoDismiss: shouldAutoDismiss = true, includeScreenshot = false } = options;
+
+    const screen = await this.getScreenSize();
+    const screenInfo: ScreenInfo = {
+      width: NORM_SIZE,
+      height: NORM_SIZE,
+      physicalWidth: screen.width,
+      physicalHeight: screen.height,
+    };
+
+    // Auto dismiss popups first (optional)
+    let dismissed: string[] = [];
+    if (shouldAutoDismiss) {
+      dismissed = await this.autoDismiss();
+    }
+
     const xml = await adbDumpUi(this.id);
-    const nodes = parseUiXml(xml);
+    const nodes = parseUiXml(xml, screen);
+
+    // Compute hash for change detection
+    const currentHash = this.computeNodesHash(nodes);
+    const changed = currentHash !== this.lastSnapshotHash;
+    this.lastSnapshotHash = currentHash;
     this.lastSnapshot = nodes;
-    return { nodes };
+
+    const result: SnapshotResult = {
+      nodes,
+      screen: screenInfo,
+      changed,
+      dismissed: dismissed.length > 0 ? dismissed : undefined,
+    };
+
+    // Screenshot only when requested (e.g., for WebView fallback)
+    if (includeScreenshot) {
+      const screenshotPath = path.join(os.tmpdir(), `openapp_${Date.now()}.png`);
+      await this.screenshot(screenshotPath);
+      result.screenshotPath = screenshotPath;
+    }
+
+    return result;
+  }
+
+  private async autoDismiss(maxAttempts: number = 3): Promise<string[]> {
+    const dismissed: string[] = [];
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const xml = await adbDumpUi(this.id);
+      const screen = await this.getScreenSize();
+      const nodes = parseUiXml(xml, screen);
+
+      const dismissNode = this.findDismissNode(nodes);
+      if (!dismissNode) {
+        break;
+      }
+
+      // Click the dismiss button
+      if (dismissNode.rect) {
+        const centerX = dismissNode.rect.x + dismissNode.rect.width / 2;
+        const centerY = dismissNode.rect.y + dismissNode.rect.height / 2;
+        const physical = await this.normalizedToPhysical(centerX, centerY);
+        await adbTap(this.id, physical.x, physical.y);
+        dismissed.push(dismissNode.text || dismissNode.contentDesc || dismissNode.resourceId || 'unknown');
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+
+    return dismissed;
+  }
+
+  private findDismissNode(nodes: SnapshotNode[]): SnapshotNode | undefined {
+    for (const node of nodes) {
+      // Check text
+      if (node.text && DISMISS_RULES.text.includes(node.text)) {
+        return node;
+      }
+      // Check resourceId patterns
+      if (node.resourceId) {
+        for (const pattern of DISMISS_RULES.resourceIdPatterns) {
+          if (pattern.test(node.resourceId)) {
+            return node;
+          }
+        }
+      }
+      // Check contentDesc patterns
+      if (node.contentDesc) {
+        for (const pattern of DISMISS_RULES.contentDescPatterns) {
+          if (pattern.test(node.contentDesc)) {
+            return node;
+          }
+        }
+      }
+    }
+    return undefined;
   }
 
   async click(selector: Selector): Promise<void> {
@@ -37,9 +192,16 @@ export class AndroidDevice implements IDevice {
     if (!node.rect) {
       throw new Error(`Element has no bounds: ${JSON.stringify(selector)}`);
     }
-    const x = Math.floor(node.rect.x + node.rect.width / 2);
-    const y = Math.floor(node.rect.y + node.rect.height / 2);
-    await adbTap(this.id, x, y);
+    // rect is already in normalized coordinates
+    const centerX = node.rect.x + node.rect.width / 2;
+    const centerY = node.rect.y + node.rect.height / 2;
+    const physical = await this.normalizedToPhysical(centerX, centerY);
+    await adbTap(this.id, physical.x, physical.y);
+  }
+
+  async tap(normX: number, normY: number): Promise<void> {
+    const physical = await this.normalizedToPhysical(normX, normY);
+    await adbTap(this.id, physical.x, physical.y);
   }
 
   async type(text: string): Promise<void> {
@@ -59,27 +221,26 @@ export class AndroidDevice implements IDevice {
   }
 
   async scroll(direction: 'up' | 'down' | 'left' | 'right'): Promise<void> {
-    // Swipe in the opposite direction to scroll content
-    const { exec } = await import('../utils/process.js');
-    // Screen center approx
-    const cx = 540, cy = 1200;
-    const dist = 800;
+    const screen = await this.getScreenSize();
+    // Use normalized coordinates for center
+    const cx = screen.width / 2;
+    const cy = screen.height / 2;
+    const distX = screen.width * 0.4;
+    const distY = screen.height * 0.35;
+
     let x1 = cx, y1 = cy, x2 = cx, y2 = cy;
 
     switch (direction) {
-      case 'down': y1 = cy + dist/2; y2 = cy - dist/2; break; // swipe up to scroll down
-      case 'up': y1 = cy - dist/2; y2 = cy + dist/2; break;
-      case 'left': x1 = cx - dist/2; x2 = cx + dist/2; break;
-      case 'right': x1 = cx + dist/2; x2 = cx - dist/2; break;
+      case 'down': y1 = cy + distY; y2 = cy - distY; break; // swipe up to scroll down
+      case 'up': y1 = cy - distY; y2 = cy + distY; break;
+      case 'left': x1 = cx - distX; x2 = cx + distX; break;
+      case 'right': x1 = cx + distX; x2 = cx - distX; break;
     }
 
-    await exec('adb', ['-s', this.id, 'shell', 'input', 'swipe',
-      String(x1), String(y1), String(x2), String(y2), '300']);
+    await adbSwipe(this.id, Math.floor(x1), Math.floor(y1), Math.floor(x2), Math.floor(y2), 300);
   }
 
   async open(packageName: string): Promise<void> {
-    // For now, use monkey to launch the main activity
-    // TODO: Support specific activity via config
     await adbForceStop(this.id, packageName);
     const { exec } = await import('../utils/process.js');
     await exec('adb', [
@@ -115,7 +276,7 @@ export class AndroidDevice implements IDevice {
 
 // --- XML Parsing ---
 
-function parseUiXml(xml: string): SnapshotNode[] {
+function parseUiXml(xml: string, screen: { width: number; height: number }): SnapshotNode[] {
   const nodes: SnapshotNode[] = [];
   const nodeRegex = /<node\s+([^>]+)>/g;
   let match: RegExpExecArray | null;
@@ -137,7 +298,9 @@ function parseUiXml(xml: string): SnapshotNode[] {
       continue;
     }
 
-    const rect = parseBounds(attrs['bounds']);
+    const physicalRect = parseBounds(attrs['bounds']);
+    // Convert to normalized coordinates
+    const rect = physicalRect ? normalizeRect(physicalRect, screen) : undefined;
 
     nodes.push({
       ref: `@e${index}`,
@@ -174,4 +337,13 @@ function parseBounds(bounds: string | undefined): Rect | undefined {
   const x2 = Number(match[3]);
   const y2 = Number(match[4]);
   return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+}
+
+function normalizeRect(rect: Rect, screen: { width: number; height: number }): Rect {
+  return {
+    x: Math.floor(rect.x / screen.width * NORM_SIZE),
+    y: Math.floor(rect.y / screen.height * NORM_SIZE),
+    width: Math.floor(rect.width / screen.width * NORM_SIZE),
+    height: Math.floor(rect.height / screen.height * NORM_SIZE),
+  };
 }

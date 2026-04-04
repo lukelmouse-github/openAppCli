@@ -44,7 +44,19 @@ export async function adbType(deviceId: string, text: string): Promise<void> {
     await adbShell(deviceId, `am broadcast -a ADB_INPUT_B64 --es msg '${base64}'`);
   } else {
     // ASCII: use input text directly
-    const escaped = text.replace(/'/g, "'\"'\"'").replace(/ /g, '%s');
+    // Escape special shell characters: space, quotes, backticks, $, \, etc.
+    const escaped = text
+      .replace(/\\/g, '\\\\')     // backslash first
+      .replace(/'/g, "'\"'\"'")   // single quotes
+      .replace(/ /g, '%s')        // spaces (adb input text format)
+      .replace(/"/g, '\\"')       // double quotes
+      .replace(/`/g, '\\`')       // backticks
+      .replace(/\$/g, '\\$')      // dollar sign
+      .replace(/&/g, '\\&')       // ampersand
+      .replace(/;/g, '\\;')       // semicolon
+      .replace(/\|/g, '\\|')      // pipe
+      .replace(/</g, '\\<')       // less than
+      .replace(/>/g, '\\>');      // greater than
     await adbShell(deviceId, `input text '${escaped}'`);
   }
 }
@@ -66,4 +78,28 @@ export async function adbStartActivity(deviceId: string, component: string): Pro
 
 export async function adbForceStop(deviceId: string, packageName: string): Promise<void> {
   await exec('adb', ['-s', deviceId, 'shell', 'am', 'force-stop', packageName]);
+}
+
+export async function adbScreenSize(deviceId: string): Promise<{ width: number; height: number }> {
+  const result = await exec('adb', ['-s', deviceId, 'shell', 'wm', 'size']);
+  // Output: "Physical size: 1080x2340"
+  const match = result.stdout.match(/(\d+)x(\d+)/);
+  if (!match) {
+    throw new Error('Failed to get screen size');
+  }
+  return { width: parseInt(match[1], 10), height: parseInt(match[2], 10) };
+}
+
+export async function adbScreenshot(deviceId: string, outputPath: string): Promise<void> {
+  await adbShell(deviceId, `screencap -p /sdcard/screenshot.png`);
+  await exec('adb', ['-s', deviceId, 'pull', '/sdcard/screenshot.png', outputPath]);
+}
+
+export async function adbSwipe(
+  deviceId: string,
+  x1: number, y1: number,
+  x2: number, y2: number,
+  durationMs: number = 300
+): Promise<void> {
+  await adbShell(deviceId, `input swipe ${x1} ${y1} ${x2} ${y2} ${durationMs}`);
 }

@@ -21,8 +21,19 @@ export interface SnapshotNode {
   enabled?: boolean;
 }
 
+export interface ScreenInfo {
+  width: number;           // Normalized (1000)
+  height: number;          // Normalized (1000)
+  physicalWidth: number;   // Actual pixels
+  physicalHeight: number;  // Actual pixels
+}
+
 export interface SnapshotResult {
   nodes: SnapshotNode[];
+  screen: ScreenInfo;
+  screenshotPath?: string;
+  changed?: boolean;
+  dismissed?: string[];    // Auto-dismissed popups
   truncated?: boolean;
 }
 
@@ -33,15 +44,25 @@ export type Selector =
   | { hint: string }
   | { ref: string };
 
+export interface SnapshotOptions {
+  autoDismiss?: boolean;      // Auto dismiss popups (default: true)
+  includeScreenshot?: boolean; // Include screenshot path (default: false)
+}
+
 export interface IDevice {
   id: string;
   platform: 'android' | 'ios';
 
+  // Screen info
+  getScreenSize(): Promise<{ width: number; height: number }>;
+
   // UI inspection
-  snapshot(): Promise<SnapshotResult>;
+  snapshot(options?: SnapshotOptions): Promise<SnapshotResult>;
+  screenshot(outputPath?: string): Promise<string>;
 
   // UI interaction
   click(selector: Selector): Promise<void>;
+  tap(x: number, y: number): Promise<void>;  // Normalized coordinates (0-1000)
   type(text: string): Promise<void>;
 
   // Navigation
